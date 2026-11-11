@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>School Trip Register</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a boarding-pass header over a tabbed register; seat map drawn like a bus floor plan */
+:root{
+  --bg:#f5f6f2; --surface:#ffffff; --ink:#1d2421; --muted:#5d6762; --line:#dfe3dc;
+  --bus:#f2b705; --bus-ink:#2a2100; --bus-soft:#fdf2c8;
+  --ok:#1f7a4d; --ok-soft:#dcf1e5; --warn:#a15c00; --warn-soft:#fbe9cf; --bad:#b4232c; --bad-soft:#fbe0e1;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Figtree",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121614; --surface:#1b201d; --ink:#e9ede9; --muted:#9aa49e; --line:#2d3430;
+  --bus:#f5c42c; --bus-ink:#231b00; --bus-soft:#3a3214;
+  --ok:#5fd093; --ok-soft:#173826; --warn:#f0b050; --warn-soft:#3b2b12; --bad:#ff7b82; --bad-soft:#43191c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121614; --surface:#1b201d; --ink:#e9ede9; --muted:#9aa49e; --line:#2d3430;
+  --bus:#f5c42c; --bus-ink:#231b00; --bus-soft:#3a3214;
+  --ok:#5fd093; --ok-soft:#173826; --warn:#f0b050; --warn-soft:#3b2b12; --bad:#ff7b82; --bad-soft:#43191c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:1100px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--bus);outline-offset:2px}
+
+/* Ticket header */
+.ticket{background:var(--surface);border:1px solid var(--line);border-radius:14px;display:grid;grid-template-columns:1fr auto;overflow:hidden}
+.ticket-main{padding:18px 20px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.ticket h1{font-size:clamp(24px,4vw,34px);font-weight:800}
+.route{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--muted);font-weight:500}
+.route b{color:var(--ink)}
+.stub{background:var(--bus);color:var(--bus-ink);padding:18px 20px;display:flex;flex-direction:column;justify-content:center;gap:8px;border-left:2px dashed color-mix(in srgb,var(--bus-ink) 35%,transparent);min-width:180px}
+.stub .eyebrow{color:var(--bus-ink);opacity:.75}
+.stub .big{font-family:var(--display);font-size:34px;font-weight:800;line-height:1}
+@media (max-width:620px){.ticket{grid-template-columns:1fr}.stub{border-left:0;border-top:2px dashed color-mix(in srgb,var(--bus-ink) 35%,transparent);flex-direction:row;align-items:center;justify-content:space-between}}
+
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-family:var(--mono);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums}
+.stat .s{color:var(--muted);font-size:13px}
+.meter{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:6px}
+.meter i{display:block;height:100%;background:var(--ok)}
+@media (max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{background:none;border:0;padding:10px 14px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--bus)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.toolbar .grow{flex:1 1 200px;min-width:0}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:8px 14px;font-weight:600}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.bus{background:var(--bus);color:var(--bus-ink);border-color:var(--bus)}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:5px 10px;font-size:13px}
+input[type=text],input[type=tel],input[type=number],input[type=date],input[type=search],select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:60px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:7px 12px;font-weight:600;font-size:13px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:640px}
+th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);font-weight:700}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tbody tr.click{cursor:pointer}
+tbody tr.click:hover{background:color-mix(in srgb,var(--bus) 8%,transparent)}
+.name{font-weight:600}
+.sub{color:var(--muted);font-size:13px}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.ex{background:var(--bus-soft);color:var(--ink);font-weight:600}
+.seatchip{font-family:var(--mono);font-weight:700;background:var(--bus-soft);padding:2px 8px;border-radius:6px;font-size:13px}
+.med{color:var(--bad);font-size:13px;font-weight:600}
+.right{text-align:right}
+
+.empty{padding:36px 20px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;color:var(--muted)}
+.empty h3{color:var(--ink);font-size:20px}
+.notice{padding:10px 14px;border-radius:10px;background:var(--warn-soft);color:var(--warn);font-weight:600;font-size:14px}
+.banner{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:var(--bus-soft)}
+
+/* Fees */
+.payrow{display:flex;gap:6px;align-items:center;justify-content:flex-end}
+.payrow input{width:96px}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;min-width:80px}
+.bar i{display:block;height:100%}
+
+/* Bus */
+.buslayout{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:760px){.buslayout{grid-template-columns:1fr}}
+.bus{background:var(--surface);border:2px solid var(--ink);border-radius:36px 36px 14px 14px;padding:18px 16px 16px;display:flex;flex-direction:column;gap:8px;width:max-content;max-width:100%;margin:0 auto}
+.bus-front{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:0 4px 8px;border-bottom:1px dashed var(--line)}
+.wheel{width:26px;height:26px;border:3px solid var(--muted);border-radius:50%}
+.seatrow{display:grid;grid-template-columns:repeat(2,52px) 22px repeat(2,52px);gap:6px;align-items:center}
+.seatrow .aisle{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center}
+.seat{height:52px;border-radius:9px 9px 5px 5px;border:1px solid var(--line);background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;overflow:hidden}
+.seat .n{font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:700}
+.seat .who{font-size:11px;font-weight:700;line-height:1.1;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seat.taken{background:var(--bus);border-color:var(--bus);color:var(--bus-ink)}
+.seat.taken .n{color:var(--bus-ink);opacity:.7}
+.seat.sel{outline:3px solid var(--ink);outline-offset:1px}
+@media (max-width:420px){.seatrow{grid-template-columns:repeat(2,44px) 14px repeat(2,44px)}.seat{height:46px}}
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.side .panel{padding:14px;display:flex;flex-direction:column;gap:10px}
+.unseated{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* Roll call */
+.rolls{display:flex;gap:6px;flex-wrap:wrap}
+.rollgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.kid{border:1px solid var(--line);background:var(--surface);border-radius:11px;padding:10px 12px;text-align:left;display:flex;gap:10px;align-items:center;min-width:0}
+.kid .dot{width:22px;height:22px;flex:none;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:13px;font-weight:800;color:transparent}
+.kid.in{background:var(--ok-soft);border-color:var(--ok)}
+.kid.in .dot{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.kid .t{min-width:0}
+.kid .t div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.missing{padding:12px 14px;border-radius:12px;background:var(--bad-soft);color:var(--bad);display:flex;flex-direction:column;gap:4px}
+.missing.done{background:var(--ok-soft);color:var(--ok)}
+.missing b{font-family:var(--display);font-size:18px}
+
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);padding:0;width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 40px)}
+dialog::backdrop{background:rgba(10,14,12,.5)}
+dialog form{padding:20px;display:flex;flex-direction:column;gap:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:480px){.grid2{grid-template-columns:1fr}}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted)}
+.actions{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;padding-top:4px}
+.actions .r{display:flex;gap:8px}
+.hist{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:30}
+.wa{display:inline-flex;align-items:center;gap:6px;background:#1f8f4e;color:#fff;border:1px solid #1f8f4e;border-radius:9px;padding:7px 12px;font-weight:700;font-size:13px;text-decoration:none;white-space:nowrap}
+.wa:hover{filter:brightness(1.08)}
+.wa[aria-disabled="true"]{background:var(--line);border-color:var(--line);color:var(--muted);pointer-events:none}
+.permlist{display:flex;flex-direction:column}
+.perm{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,2fr) auto;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
+.perm:last-child{border-bottom:0}
+.perm .preview{font-size:13px;color:var(--muted);white-space:pre-line;max-height:3.9em;overflow:hidden;min-width:0}
+.perm .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:760px){.perm{grid-template-columns:1fr}.perm .acts{justify-content:flex-start}}
+.tpl{padding:14px;display:flex;flex-direction:column;gap:10px}
+.tpl textarea{min-height:150px;font-size:14px}
+.tokens{display:flex;flex-wrap:wrap;gap:6px}
+.tokens button{font-family:var(--mono);font-size:12px;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 7px}
+.exsum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:620px){.exsum{grid-template-columns:1fr}}
+.exform{padding:14px;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr) auto;gap:8px;align-items:end}
+@media (max-width:900px){.exform{grid-template-columns:1fr 1fr}.exform .full{grid-column:1/-1}}
+.cats{padding:14px;display:flex;flex-direction:column;gap:8px}
+.catrow{display:grid;grid-template-columns:minmax(0,140px) minmax(0,1fr) auto;gap:10px;align-items:center;font-size:14px}
+.catrow .bar i{background:var(--bus)}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--bad);font-weight:600;font-size:14px}
+@media (prefers-reduced-motion:no-preference){.kid,.seat,.btn{transition:background-color .15s,border-color .15s}}
+</style>
+<script>
+/* Local mode: replaces the claude.ai shared database with storage in this browser. */
+(function(){
+  const KEY = "smartstep-trip-app:v1";
+  const SEED = {"trip": {"info": {"school": "Smart Step Academy Sakrand", "name": "Karachi Trip", "destination": "Karachi", "date": "2026-11-28", "fee": 2500, "currency": "Rs", "buses": 1, "seatsPerBus": 40}}, "students": {"b7jy6bwysny3666ifo78": {"cls": "12", "consent": true, "createdAt": 1794284703187, "emergency": "", "fee": 0, "medical": "", "name": "Ubaid", "parent": "Imran Ahmed", "payments": [], "phone": "", "seat": null}, "jxtxh0jwna370mipl3ay": {"cls": "12", "consent": true, "createdAt": 1794285150704, "emergency": "03003386016", "fee": 3000, "medical": "", "name": "Ahsan Ali", "parent": "xyz", "payments": [], "permSent": "2026-11-10", "phone": "03003386016", "seat": null}}, "rollcalls": {}, "expenses": {}};
+  let store;
+  try { store = JSON.parse(localStorage.getItem(KEY)) || null; } catch(e) { store = null; }
+  if (!store) store = JSON.parse(JSON.stringify(SEED));
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e) { alertBar("Could not save. Your browser storage may be full or blocked."); } };
+  save();
+  const listeners = new Set();
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const rid = () => Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
+  const merge = (a, b) => { for (const k in b) { const v = b[k];
+    if (v && typeof v === "object" && !Array.isArray(v) && a[k] && typeof a[k] === "object" && !Array.isArray(a[k])) merge(a[k], v);
+    else a[k] = clone(v); } return a; };
+  const meta = { fromCache:false, hasPendingWrites:false };
+  const docSnap = (id, d) => ({ id, exists: !!d, data: () => d ? clone(d) : undefined, metadata: meta });
+  function emit(){ for (const l of listeners) { try { l(); } catch(e) { console.error(e); } } }
+  function docRef(coll, id){
+    const get = () => (store[coll] || {})[id];
+    return {
+      id, path: coll + "/" + id,
+      async get(){ return docSnap(id, get()); },
+      async set(data){ (store[coll] ||= {})[id] = clone(data); save(); emit(); },
+      async update(data){ const cur = get(); if (!cur) throw { code:"invalid_argument", message:"Document does not exist" };
+        merge(cur, data); save(); emit(); },
+      async delete(){ if (store[coll]) delete store[coll][id]; save(); emit(); },
+      onSnapshot(next){ const l = () => next(docSnap(id, get())); listeners.add(l); setTimeout(l, 0); return () => listeners.delete(l); },
+      collection(){ throw new Error("Not supported locally"); }
+    };
+  }
+  function query(coll, order){
+    const run = () => { let rows = Object.entries(store[coll] || {}).map(([id, d]) => docSnap(id, d));
+      if (order) rows.sort((a, b) => { const x = a.data()[order.f], y = b.data()[order.f]; const c = x < y ? -1 : x > y ? 1 : 0; return order.dir === "desc" ? -c : c; });
+      else rows.sort((a, b) => a.id < b.id ? -1 : 1);
+      return { docs: rows, size: rows.length, empty: !rows.length, metadata: meta, docChanges: () => [] }; };
+    return {
+      path: coll,
+      orderBy(f, dir){ return query(coll, { f, dir: dir || "asc" }); },
+      where(){ return this; }, limit(){ return this; },
+      async get(){ return run(); },
+      onSnapshot(next){ const l = () => next(run()); listeners.add(l); setTimeout(l, 0); return () => listeners.delete(l); },
+      doc(id){ return docRef(coll, id || rid()); },
+      async add(data){ const r = docRef(coll, rid()); await r.set(data); return r; }
+    };
+  }
+  const db = {
+    doc(path){ const [c, id] = path.split("/"); return docRef(c, id); },
+    collection(path){ return query(path); }
+  };
+  function saveFile(name, data, type){
+    const blob = data instanceof Blob ? data : new Blob(["﻿" + data], { type: type || "text/csv;charset=utf-8" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+  const downloads = { async save({ filename, data }){ saveFile(filename, data); return { status:"saved" }; } };
+  window.claude = { use: async name => name === "db" ? db : name === "downloads" ? downloads : null };
+
+  /* Backup bar: data lives only in this browser, so offer backup and restore. */
+  function alertBar(msg){ const t = document.getElementById("toast"); if (t) { t.textContent = msg; t.hidden = false; setTimeout(() => t.hidden = true, 3000); } }
+  document.addEventListener("DOMContentLoaded", () => {
+    const bar = document.createElement("div");
+    bar.className = "banner";
+    bar.innerHTML = '<span><b>Local copy.</b> Data is saved in this browser on this device only. Make a backup now and then.</span>' +
+      '<span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" type="button" id="bkSave">Save backup</button>' +
+      '<label class="btn sm" style="flex-direction:row;color:var(--ink);font-size:13px;cursor:pointer">Restore backup<input type="file" id="bkLoad" accept=".json,application/json" hidden></label></span>';
+    const wrap = document.querySelector(".wrap"); wrap.insertBefore(bar, wrap.children[1]);
+    document.getElementById("bkSave").onclick = () => saveFile("trip-backup-" + new Date().toISOString().slice(0,10) + ".json", new Blob([JSON.stringify(store, null, 2)], { type:"application/json" }));
+    document.getElementById("bkLoad").onchange = async e => {
+      const f = e.target.files[0]; if (!f) return;
+      try { const d = JSON.parse(await f.text()); if (!d || typeof d !== "object" || !d.trip) throw 0;
+        store = d; save(); emit(); alertBar("Backup restored"); }
+      catch(err) { alertBar("That file isn't a trip backup."); }
+      e.target.value = "";
+    };
+  });
+})();
+
+</script>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="ticket">
+    <div class="ticket-main">
+      <span class="eyebrow" id="tSchool">School trip · boarding register</span>
+      <h1 id="tTitle">Your school trip</h1>
+      <div class="route">
+        <span>To <b id="tDest">—</b></span>
+        <span>Date <b id="tDate">—</b></span>
+        <span>Fee <b id="tFee" class="num">—</b></span>
+      </div>
+      <div><button class="btn sm" id="editTrip" type="button">Edit trip details</button></div>
+    </div>
+    <div class="stub">
+      <span class="eyebrow">Students going</span>
+      <span class="big num" id="tCount">0</span>
+    </div>
+  </header>
+
+  <div id="statusNote" class="notice" hidden></div>
+  <div id="exampleBanner" class="banner" hidden>
+    <span>The students marked <span class="pill ex">Example</span> are sample rows so you can see how it works.</span>
+    <span id="exClear"><button class="btn sm" type="button" id="clearEx">Remove examples</button></span>
+  </div>
+
+  <section class="stats" aria-label="Summary">
+    <div class="stat"><span class="eyebrow">Fees collected</span><span class="v" id="sPaid">0</span><span class="s" id="sPaidSub">of 0 due</span><div class="meter"><i id="sPaidBar" style="width:0%"></i></div></div>
+    <div class="stat"><span class="eyebrow">Still to collect</span><span class="v" id="sDue">0</span><span class="s" id="sDueSub">0 students owe</span></div>
+    <div class="stat"><span class="eyebrow">Seats given</span><span class="v" id="sSeats">0</span><span class="s" id="sSeatsSub">0 seats on 1 bus</span></div>
+    <div class="stat"><span class="eyebrow">Last roll call</span><span class="v" id="sRoll">—</span><span class="s" id="sRollSub">No roll call yet</span></div>
+  </section>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-view="students">Students</button>
+    <button class="tab" role="tab" data-view="fees">Fees</button>
+    <button class="tab" role="tab" data-view="seats">Seats</button>
+    <button class="tab" role="tab" data-view="attendance">Attendance</button>
+    <button class="tab" role="tab" data-view="permission">Permission</button>
+    <button class="tab" role="tab" data-view="expenses">Expenses</button>
+  </nav>
+
+  <!-- STUDENTS -->
+  <section id="v-students" class="view" style="display:flex;flex-direction:column;gap:12px">
+    <div class="toolbar">
+      <input type="search" class="grow" id="q" placeholder="Search name, class or parent">
+      <button class="btn primary w" id="addStudent" type="button">Add student</button>
+      <button class="btn" id="exportCsv" type="button" hidden>Export CSV</button>
+    </div>
+    <div class="panel"><div class="scroll" id="studentTable"></div></div>
+  </section>
+
+  <!-- FEES -->
+  <section id="v-fees" class="view" hidden style="flex-direction:column;gap:12px">
+    <div class="toolbar">
+      <div class="seg" id="feeFilter">
+        <button type="button" data-f="all" aria-pressed="true">All</button>
+        <button type="button" data-f="unpaid">Not paid</button>
+        <button type="button" data-f="partial">Part paid</button>
+        <button type="button" data-f="paid">Paid</button>
+      </div>
+    </div>
+    <div class="panel"><div class="scroll" id="feeTable"></div></div>
+  </section>
+
+  <!-- SEATS -->
+  <section id="v-seats" class="view" hidden style="flex-direction:column;gap:12px">
+    <div class="toolbar"><div class="seg" id="busPick"></div><span class="sub">Pick a seat, then pick a student. Or pick a student first, then a seat.</span></div>
+    <div class="buslayout">
+      <div id="busMap"></div>
+      <div class="side">
+        <div class="panel" id="seatPanel"></div>
+        <div class="panel">
+          <h3 style="font-size:16px">Without a seat <span class="num sub" id="unseatedCount"></span></h3>
+          <div class="unseated" id="unseated"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ATTENDANCE -->
+  <section id="v-attendance" class="view" hidden style="flex-direction:column;gap:12px">
+    <form class="toolbar w" id="newRoll">
+      <input type="text" class="grow" id="rollName" placeholder="New roll call, e.g. Boarding at school 7:30am" maxlength="80">
+      <button class="btn bus" type="submit">Start roll call</button>
+    </form>
+    <div class="rolls" id="rolls"></div>
+    <div id="rollBody" style="display:flex;flex-direction:column;gap:12px"></div>
+  </section>
+</div>
+
+<!-- PERMISSION -->
+  <section id="v-permission" class="view" hidden style="flex-direction:column;gap:12px">
+    <details class="panel" id="tplBox">
+      <summary style="padding:14px;cursor:pointer;font-weight:700">Permission message <span class="sub" style="font-weight:500">· edit the wording sent to parents</span></summary>
+      <div class="tpl">
+        <textarea id="tplText" dir="auto" aria-label="Permission message template"></textarea>
+        <div class="tokens" id="tplTokens"><span class="sub">Tap to insert:</span></div>
+        <div class="grid2">
+          <label>Country code for numbers starting with 0<input type="text" id="tplCc" maxlength="4" placeholder="92"></label>
+          <span></span>
+        </div>
+        <div class="toolbar w"><button class="btn primary" type="button" id="tplSave">Save message</button><button class="btn" type="button" id="tplReset">Use default wording</button></div>
+      </div>
+    </details>
+    <div class="toolbar">
+      <div class="seg" id="permFilter">
+        <button type="button" data-pf="all" aria-pressed="true">All</button>
+        <button type="button" data-pf="waiting">Slip not back</button>
+        <button type="button" data-pf="notsent">Not messaged</button>
+        <button type="button" data-pf="signed">Signed</button>
+      </div>
+      <span class="sub" id="permCount"></span>
+    </div>
+    <div class="panel"><div class="permlist" id="permList"></div></div>
+  </section>
+
+<!-- EXPENSES -->
+  <section id="v-expenses" class="view" hidden style="flex-direction:column;gap:12px">
+    <div class="exsum">
+      <div class="stat"><span class="eyebrow">Fees collected</span><span class="v" id="exIn">0</span><span class="s">From student payments</span></div>
+      <div class="stat"><span class="eyebrow">Spent</span><span class="v" id="exOut">0</span><span class="s" id="exOutSub">0 expenses</span></div>
+      <div class="stat"><span class="eyebrow">Left in hand</span><span class="v" id="exLeft">0</span><span class="s" id="exLeftSub">Collected minus spent</span></div>
+    </div>
+    <form class="panel exform w" id="exForm">
+      <label class="full">What was it for<input type="text" id="exItem" required maxlength="80" placeholder="e.g. Museum entry tickets"></label>
+      <label>Category<select id="exCat"></select></label>
+      <label>Amount<input type="number" id="exAmt" required min="1" step="1"></label>
+      <label>Date<input type="date" id="exDate"></label>
+      <label>Paid by<input type="text" id="exBy" maxlength="40" placeholder="e.g. Ms. Sana"></label>
+      <button class="btn bus" type="submit">Add expense</button>
+    </form>
+    <div class="panel" id="exCats"></div>
+    <div class="panel"><div class="scroll" id="exTable"></div></div>
+  </section>
+
+<dialog id="dlgStudent"><form id="fStudent" method="dialog">
+  <h2 id="fsTitle" style="font-size:22px">Add student</h2>
+  <div class="grid2">
+    <label>Full name<input type="text" id="fsName" required maxlength="80"></label>
+    <label>Class / section<input type="text" id="fsCls" maxlength="20" placeholder="e.g. 7-B"></label>
+    <label>Parent / guardian<input type="text" id="fsParent" maxlength="80"></label>
+    <label>Parent phone<input type="tel" id="fsPhone" maxlength="30"></label>
+    <label>Emergency contact<input type="tel" id="fsEmerg" maxlength="60" placeholder="Name and number"></label>
+    <label>Trip fee for this student<input type="number" id="fsFee" min="0" step="1" placeholder="Uses trip fee"></label>
+  </div>
+  <label>Medical notes / allergies<textarea id="fsMed" maxlength="300" placeholder="e.g. Asthma, carries inhaler"></textarea></label>
+  <label style="flex-direction:row;align-items:center;gap:8px;color:var(--ink)"><input type="checkbox" id="fsConsent"> Signed permission slip received</label>
+  <div class="hist" id="fsHist"></div>
+  <div class="actions">
+    <span id="fsDelWrap"><button class="btn danger" type="button" id="fsDel">Delete student</button></span>
+    <div class="r"><button class="btn" type="button" id="fsCancel">Cancel</button><button class="btn primary" type="submit" id="fsSave">Save</button></div>
+  </div>
+</form></dialog>
+
+<dialog id="dlgTrip"><form id="fTrip" method="dialog">
+  <h2 style="font-size:22px">Trip details</h2>
+  <label>School / academy name<input type="text" id="ftSchool" maxlength="80" placeholder="Smart Step Academy Sakrand"></label>
+  <label>Trip name<input type="text" id="ftName" maxlength="80" placeholder="Karachi Trip"></label>
+  <div class="grid2">
+    <label>Destination<input type="text" id="ftDest" maxlength="80"></label>
+    <label>Date<input type="date" id="ftDate"></label>
+    <label>Fee per student<input type="number" id="ftFee" min="0" step="1"></label>
+    <label>Currency<input type="text" id="ftCur" maxlength="6" placeholder="Rs"></label>
+    <label>Number of buses<input type="number" id="ftBuses" min="1" max="6" step="1"></label>
+    <label>Seats per bus<input type="number" id="ftSeats" min="4" max="80" step="4"></label>
+  </div>
+  <div class="actions"><span></span><div class="r"><button class="btn" type="button" id="ftCancel">Cancel</button><button class="btn primary" type="submit">Save trip</button></div></div>
+</form></dialog>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const DEFAULT_MSG = "السلام علیکم {parent}،\n\n{school} اپنے طلبہ کو {trip} پر لے جا رہی ہے۔\nمقام: {destination}\nتاریخ: {date}\n\nطالب علم کا نام: {student}\nکلاس: {class}\n\nبراہ کرم {student} کو اس ٹرپ میں شامل ہونے کی اجازت دیں۔\nٹرپ فیس: {fee}\nباقی رقم: {balance}\n\nاجازت دینے کے لیے براہ کرم \"جی ہاں\" لکھ کر جواب دیں اور دستخط شدہ اجازت نامہ اپنے بچے کے ساتھ اسکول بھیجیں۔\n\nشکریہ\nانتظامیہ، {school}";
+const CATS = ["Transport","Tickets & entry","Food","Snacks & water","First aid","Guide & staff","Other"];
+const TOKENS = ["school","parent","student","class","trip","destination","date","fee","balance","seat"];
+const DEFAULT_TRIP = {school:"", name:"", destination:"", date:"", fee:0, currency:"Rs", buses:1, seatsPerBus:40, permMsg:"", countryCode:"92"};
+const S = {db:null, canWrite:true, trip:{...DEFAULT_TRIP}, students:[], rolls:[], expenses:[], loaded:false,
+  view:"students", q:"", feeF:"all", permF:"all", tplDirty:false, bus:1, selSeat:null, selKid:null, roll:null, editing:null, dlFn:null};
+
+function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2200);}
+function money(n){const c=S.trip.currency||"";return (c?c+" ":"")+Math.round(n||0).toLocaleString();}
+function feeDue(s){return (s.fee!=null && s.fee!=="") ? Number(s.fee) : Number(S.trip.fee||0);}
+function paid(s){return (s.payments||[]).reduce((a,p)=>a+Number(p.amount||0),0);}
+function feeState(s){const d=feeDue(s),p=paid(s);if(d<=0&&p<=0)return "none";if(p>=d)return "paid";if(p>0)return "partial";return "unpaid";}
+function feePill(s){const st=feeState(s);return st==="paid"?'<span class="pill ok">Paid</span>':st==="partial"?'<span class="pill warn">Part paid</span>':st==="unpaid"?'<span class="pill bad">Not paid</span>':'<span class="pill">No fee set</span>';}
+function sorted(){return [...S.students].sort((a,b)=>(a.cls||"").localeCompare(b.cls||"",undefined,{numeric:true})||(a.name||"").localeCompare(b.name||""));}
+function seatLabel(seat){if(!seat)return "";const [b,n]=seat.split("-");return S.trip.buses>1?`Bus ${b} · ${n}`:`Seat ${n}`;}
+function fmtDate(d){if(!d)return "—";const x=new Date(d+"T00:00:00");return isNaN(x)?d:x.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short",year:"numeric"});}
+function setWritable(){document.querySelectorAll(".w,#editTrip,#exClear").forEach(e=>e.hidden=!S.canWrite);}
+async function guard(p,ok){try{await p;if(ok)toast(ok);}catch(e){
+  if(e&&e.code==="invalid_argument"&&S.canWrite){S.canWrite=false;setWritable();render();toast("You can view this register but not change it.");}
+  else if(e&&e.code==="quota_exceeded")toast("The register is full. Delete old roll calls to make room.");
+  else toast("That didn't save. Check your connection and try again.");}}
+
+/* ---------- render ---------- */
+function render(){
+  const t=S.trip;
+  $("#tTitle").textContent=t.name||"Your school trip";
+  $("#tSchool").textContent=(t.school?t.school+" · ":"")+"Trip register";
+  $("#tDest").textContent=t.destination||"Add destination";
+  $("#tDate").textContent=fmtDate(t.date);
+  $("#tFee").textContent=t.fee?money(t.fee):"Not set";
+  $("#tCount").textContent=S.students.length;
+  const due=S.students.reduce((a,s)=>a+feeDue(s),0), got=S.students.reduce((a,s)=>a+Math.min(paid(s),Math.max(feeDue(s),paid(s))),0);
+  const owing=S.students.filter(s=>["unpaid","partial"].includes(feeState(s)));
+  const out=owing.reduce((a,s)=>a+Math.max(0,feeDue(s)-paid(s)),0);
+  $("#sPaid").textContent=money(got); $("#sPaidSub").textContent="of "+money(due)+" due";
+  $("#sPaidBar").style.width=(due?Math.min(100,got/due*100):0)+"%";
+  $("#sDue").textContent=money(out); $("#sDueSub").textContent=owing.length+(owing.length===1?" student owes":" students owe");
+  const seated=S.students.filter(s=>s.seat).length, cap=t.buses*t.seatsPerBus;
+  $("#sSeats").textContent=seated+" / "+S.students.length; $("#sSeatsSub").textContent=cap+" seats on "+t.buses+(t.buses>1?" buses":" bus");
+  const last=S.rolls[0];
+  if(last){const n=S.students.filter(s=>last.present&&last.present[s.id]).length;$("#sRoll").textContent=n+" / "+S.students.length;$("#sRollSub").textContent=last.name;}
+  else{$("#sRoll").textContent="—";$("#sRollSub").textContent="No roll call yet";}
+  $("#exampleBanner").hidden=!S.students.some(s=>s.sample);
+  $("#exportCsv").hidden=!S.dlFn||!S.students.length;
+  document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",b.dataset.view===S.view));
+  document.querySelectorAll(".view").forEach(v=>{const on=v.id==="v-"+S.view;v.hidden=!on;if(on)v.style.display="flex";});
+  ({students:rStudents,fees:rFees,seats:rSeats,attendance:rRoll,permission:rPerm,expenses:rExp})[S.view]();
+}
+
+function emptyState(title,body,btn){
+  return `<div class="empty"><h3>${title}</h3><p style="margin:0;max-width:46ch">${body}</p>${btn&&S.canWrite?btn:""}</div>`;}
+
+function rStudents(){
+  const q=S.q.trim().toLowerCase();
+  const list=sorted().filter(s=>!q||[s.name,s.cls,s.parent,s.phone].join(" ").toLowerCase().includes(q));
+  if(!S.loaded){$("#studentTable").innerHTML=emptyState("Loading the register…","Students will appear here in a moment.");return;}
+  if(!S.students.length){$("#studentTable").innerHTML=emptyState("No students yet","Add each student going on the trip. Their fees, seat and attendance are tracked from here.",'<button class="btn primary" type="button" onclick="openStudent()">Add the first student</button>');return;}
+  if(!list.length){$("#studentTable").innerHTML=emptyState("No match","No student matches “"+esc(S.q)+"”.");return;}
+  $("#studentTable").innerHTML=`<table><thead><tr><th>Student</th><th>Class</th><th>Parent</th><th>Seat</th><th>Fee</th><th>Slip</th></tr></thead><tbody>${list.map(s=>`
+    <tr class="click" data-id="${esc(s.id)}" tabindex="0"><td><div class="name">${esc(s.name)} ${s.sample?'<span class="pill ex">Example</span>':""}</div>${s.medical?`<div class="med">⚕ ${esc(s.medical)}</div>`:""}</td>
+    <td>${esc(s.cls||"—")}</td><td><div>${esc(s.parent||"—")}</div><div class="sub num">${esc(s.phone||"")}</div></td>
+    <td>${s.seat?`<span class="seatchip">${esc(seatLabel(s.seat))}</span>`:'<span class="sub">None</span>'}</td>
+    <td>${feePill(s)}</td><td>${s.consent?'<span class="pill ok">Signed</span>':'<span class="pill bad">Missing</span>'}</td></tr>`).join("")}</tbody></table>`;
+}
+
+function rFees(){
+  if(!S.students.length){$("#feeTable").innerHTML=emptyState("No students yet","Add students first, then record each payment here.");return;}
+  const list=sorted().filter(s=>S.feeF==="all"||feeState(s)===S.feeF);
+  if(!list.length){$("#feeTable").innerHTML=emptyState("Nobody here","No student is in this group.");return;}
+  $("#feeTable").innerHTML=`<table><thead><tr><th>Student</th><th class="right">Due</th><th class="right">Paid</th><th class="right">Balance</th><th>Progress</th><th class="right">${S.canWrite?"Record payment":""}</th></tr></thead><tbody>${list.map(s=>{
+    const d=feeDue(s),p=paid(s),bal=Math.max(0,d-p),pct=d?Math.min(100,p/d*100):0,st=feeState(s);
+    return `<tr><td><div class="name">${esc(s.name)}</div><div class="sub">${esc(s.cls||"")} ${feePill(s)}</div></td>
+    <td class="right num">${money(d)}</td><td class="right num">${money(p)}</td><td class="right num" style="color:${bal?"var(--bad)":"var(--ok)"}">${money(bal)}</td>
+    <td><div class="bar"><i style="width:${pct}%;background:${st==="paid"?"var(--ok)":"var(--warn)"}"></i></div></td>
+    <td>${S.canWrite?`<form class="payrow" data-id="${esc(s.id)}"><input type="number" min="1" step="1" id="pay-${esc(s.id)}" placeholder="${bal||""}" aria-label="Amount for ${esc(s.name)}"><button class="btn sm" type="submit">Add</button></form>`:""}</td></tr>`;}).join("")}</tbody></table>`;
+}
+
+function rSeats(){
+  const t=S.trip; if(S.bus>t.buses)S.bus=1;
+  $("#busPick").innerHTML=Array.from({length:t.buses},(_,i)=>`<button type="button" data-bus="${i+1}" aria-pressed="${S.bus===i+1}">Bus ${i+1}</button>`).join("");
+  $("#busPick").hidden=t.buses<2;
+  const bySeat={};S.students.forEach(s=>{if(s.seat)bySeat[s.seat]=s;});
+  let rows="";for(let r=0;r<Math.ceil(t.seatsPerBus/4);r++){
+    let cells=[];for(let c=0;c<4;c++){const n=r*4+c+1;if(n>t.seatsPerBus){cells.push("<span></span>");continue;}
+      const id=S.bus+"-"+n,s=bySeat[id];const first=s?(s.name||"").split(" ")[0]:"";
+      cells.push(`<button type="button" class="seat${s?" taken":""}${S.selSeat===id?" sel":""}" data-seat="${id}" aria-label="Seat ${n}${s?", "+esc(s.name):", empty"}"><span class="n">${n}</span>${s?`<span class="who">${esc(first)}</span>`:""}</button>`);}
+    rows+=`<div class="seatrow">${cells[0]}${cells[1]}<span class="aisle">${r+1}</span>${cells[2]}${cells[3]}</div>`;}
+  $("#busMap").innerHTML=`<div class="bus"><div class="bus-front"><span class="wheel" aria-hidden="true"></span><span>Front · Bus ${S.bus}</span><span>Door ▸</span></div>${rows}</div>`;
+  const un=sorted().filter(s=>!s.seat);
+  $("#unseatedCount").textContent="("+un.length+")";
+  $("#unseated").innerHTML=un.length?un.map(s=>`<button type="button" class="chip" data-kid="${esc(s.id)}" aria-pressed="${S.selKid===s.id}">${esc(s.name)}</button>`).join(""):'<span class="sub">Everyone has a seat.</span>';
+  const p=$("#seatPanel");
+  if(S.selSeat){const s=bySeat[S.selSeat],n=S.selSeat.split("-")[1];
+    p.innerHTML=`<h3 style="font-size:16px">Seat ${n}${t.buses>1?" · Bus "+S.bus:""}</h3>${s?`<div><div class="name">${esc(s.name)}</div><div class="sub">${esc(s.cls||"")}${s.medical?' · <span class="med">⚕ '+esc(s.medical)+'</span>':""}</div></div>`:'<div class="sub">Empty seat</div>'}
+    ${S.canWrite?`<label>${s?"Move someone else here":"Give this seat to"}<select id="seatAssign"><option value="">Choose a student…</option>${sorted().filter(x=>x!==s).map(x=>`<option value="${esc(x.id)}">${esc(x.name)}${x.seat?" (now "+esc(seatLabel(x.seat))+")":""}</option>`).join("")}</select></label>${s?'<button class="btn sm danger" type="button" id="seatClear">Free this seat</button>':""}`:""}`;}
+  else if(S.selKid){const s=S.students.find(x=>x.id===S.selKid);p.innerHTML=`<h3 style="font-size:16px">${esc(s?s.name:"")}</h3><div class="sub">Now tap an empty seat on the bus.</div>`;}
+  else p.innerHTML=`<h3 style="font-size:16px">Seat plan</h3><div class="sub">${t.seatsPerBus} seats per bus, two each side of the aisle. Row numbers run down the middle.</div>`;
+}
+
+function rRoll(){
+  $("#rolls").innerHTML=S.rolls.map(r=>{const n=S.students.filter(s=>r.present&&r.present[s.id]).length;
+    return `<button type="button" class="chip" data-roll="${esc(r.id)}" aria-pressed="${S.roll===r.id}">${esc(r.name)} · <span class="num">${n}/${S.students.length}</span></button>`;}).join("");
+  const r=S.rolls.find(x=>x.id===S.roll);
+  if(!r){$("#rollBody").innerHTML=`<div class="panel">${emptyState(S.rolls.length?"Pick a roll call":"No roll calls yet",S.rolls.length?"Choose one above to see who is present.":"Start a roll call at every stop: boarding, arrival, lunch, and before the bus leaves. Tap each child as you see them.")}</div>`;return;}
+  const pres=r.present||{},list=sorted(),miss=list.filter(s=>!pres[s.id]);
+  $("#rollBody").innerHTML=`<div class="missing${miss.length?"":" done"}"><b>${miss.length?miss.length+" not checked in":"Everyone is here"}</b>${miss.length?`<span>${miss.map(s=>esc(s.name)+(s.seat?" ("+esc(seatLabel(s.seat))+")":"")).join(", ")}</span>`:`<span>All ${list.length} students checked in.</span>`}</div>
+    <div class="rollgrid">${list.map(s=>`<button type="button" class="kid${pres[s.id]?" in":""}" data-tog="${esc(s.id)}" ${S.canWrite?"":"disabled"}><span class="dot">✓</span><span class="t"><div class="name">${esc(s.name)}</div><div class="sub">${esc(s.cls||"")}${s.seat?" · "+esc(seatLabel(s.seat)):""}</div></span></button>`).join("")}</div>
+    ${S.canWrite?`<div class="toolbar"><button class="btn sm" type="button" id="allIn">Mark all present</button><span id="delRollWrap"><button class="btn sm danger" type="button" id="delRoll">Delete this roll call</button></span></div>`:""}`;
+}
+
+/* ---------- permission ---------- */
+function waNumber(phone){
+  let raw=String(phone||"").trim();if(!raw)return "";
+  const plus=raw.startsWith("+");let d=raw.replace(/\D/g,"");
+  if(!d)return "";if(plus)return d;
+  if(d.startsWith("00"))return d.slice(2);
+  const cc=String(S.trip.countryCode||"").replace(/\D/g,"");
+  if(d.startsWith("0"))return cc+d.slice(1);
+  return d.length<=10&&cc&&!d.startsWith(cc)?cc+d:d;
+}
+function permText(s){
+  const t=S.trip,tpl=(t.permMsg&&t.permMsg.trim())?t.permMsg:DEFAULT_MSG;
+  const v={school:t.school||"ہمارا اسکول",parent:s.parent||"محترم والدین",student:s.name||"",class:s.cls||"-",trip:t.name||"اسکول ٹرپ",destination:t.destination||"-",
+    date:t.date?fmtDate(t.date):"-",fee:money(feeDue(s)),balance:money(Math.max(0,feeDue(s)-paid(s))),seat:s.seat?seatLabel(s.seat):"not given yet"};
+  return tpl.replace(/\{(\w+)\}/g,(m,k)=>k in v?v[k]:m);
+}
+function waLink(s){const n=waNumber(s.phone);return n?"https://wa.me/"+n+"?text="+encodeURIComponent(permText(s)):"";}
+function rPerm(){
+  const ta=$("#tplText");
+  if(!S.tplDirty&&document.activeElement!==ta)ta.value=(S.trip.permMsg&&S.trip.permMsg.trim())?S.trip.permMsg:DEFAULT_MSG;
+  if(document.activeElement!==$("#tplCc"))$("#tplCc").value=S.trip.countryCode||"";
+  ta.disabled=!S.canWrite;$("#tplCc").disabled=!S.canWrite;
+  if($("#tplTokens").children.length<2)$("#tplTokens").insertAdjacentHTML("beforeend",TOKENS.map(k=>`<button type="button" data-tok="${k}">{${k}}</button>`).join(""));
+  if(!S.students.length){$("#permList").innerHTML=emptyState("No students yet","Add students with their parent's WhatsApp number, then send each parent the permission message from here.");$("#permCount").textContent="";return;}
+  const all=sorted(),signed=all.filter(s=>s.consent).length;
+  $("#permCount").textContent=signed+" of "+all.length+" slips back";
+  const list=all.filter(s=>S.permF==="all"||(S.permF==="waiting"&&!s.consent)||(S.permF==="signed"&&s.consent)||(S.permF==="notsent"&&!s.permSent));
+  if(!list.length){$("#permList").innerHTML=emptyState("Nobody here","No student is in this group.");return;}
+  $("#permList").innerHTML=list.map(s=>{const link=waLink(s),num=waNumber(s.phone);
+    return `<div class="perm"><div style="min-width:0"><div class="name">${esc(s.name)} ${s.sample?'<span class="pill ex">Example</span>':""}</div>
+      <div class="sub">${esc(s.parent||"No parent name")} · <span class="num">${num?"+"+esc(num):'<span style="color:var(--bad)">No phone number</span>'}</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">${s.consent?'<span class="pill ok">Slip signed</span>':'<span class="pill bad">Slip not back</span>'}${s.permSent?`<span class="pill" style="background:var(--bus-soft)">Messaged ${esc(s.permSent)}</span>`:""}</div></div>
+      <div class="preview" dir="auto">${esc(permText(s))}</div>
+      <div class="acts">${link?`<a class="wa" href="${esc(link)}" target="_blank" rel="noopener" data-sent="${esc(s.id)}">Send on WhatsApp</a>`:'<a class="wa" aria-disabled="true">Add a phone number</a>'}
+        <button class="btn sm" type="button" data-copy="${esc(s.id)}">Copy message</button>
+        ${S.canWrite?`<button class="btn sm" type="button" data-consent="${esc(s.id)}">${s.consent?"Mark slip missing":"Mark slip signed"}</button>`:""}</div></div>`;}).join("");
+}
+
+/* ---------- expenses ---------- */
+function rExp(){
+  const sel=$("#exCat");if(!sel.options.length)sel.innerHTML=CATS.map(c=>`<option>${c}</option>`).join("");
+  if(!$("#exDate").value)$("#exDate").value=new Date().toISOString().slice(0,10);
+  const got=S.students.reduce((a,s)=>a+paid(s),0),spent=S.expenses.reduce((a,x)=>a+Number(x.amount||0),0),left=got-spent;
+  $("#exIn").textContent=money(got);$("#exOut").textContent=money(spent);
+  $("#exOutSub").textContent=S.expenses.length+(S.expenses.length===1?" expense":" expenses");
+  $("#exLeft").textContent=(left<0?"−":"")+money(Math.abs(left));$("#exLeft").style.color=left<0?"var(--bad)":"var(--ok)";
+  $("#exLeftSub").textContent=left<0?"Spent more than collected":"Collected minus spent";
+  if(!S.expenses.length){$("#exCats").hidden=true;$("#exTable").innerHTML=emptyState("No expenses yet","Add each cost as it happens: bus hire, tickets, lunch, water. The totals above update straight away.");return;}
+  $("#exCats").hidden=false;
+  const by={};S.expenses.forEach(x=>{by[x.category||"Other"]=(by[x.category||"Other"]||0)+Number(x.amount||0);});
+  const rows=Object.entries(by).sort((a,b)=>b[1]-a[1]),max=rows[0][1]||1;
+  $("#exCats").innerHTML=`<div class="cats"><h3 style="font-size:16px">Spending by category</h3>${rows.map(([c,v])=>`<div class="catrow"><span>${esc(c)}</span><div class="bar"><i style="width:${v/max*100}%"></i></div><span class="num">${money(v)}</span></div>`).join("")}</div>`;
+  const list=[...S.expenses].sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.createdAt||0)-(a.createdAt||0));
+  $("#exTable").innerHTML=`<table><thead><tr><th>Date</th><th>Item</th><th>Category</th><th>Paid by</th><th class="right">Amount</th><th></th></tr></thead><tbody>${list.map(x=>`<tr>
+    <td class="num">${esc(x.date||"")}</td><td class="name">${esc(x.item)}</td><td>${esc(x.category||"Other")}</td><td>${esc(x.paidBy||"—")}</td>
+    <td class="right num">${money(x.amount)}</td><td class="right" id="exd-${esc(x.id)}">${S.canWrite?`<button class="btn sm danger" type="button" data-exdel="${esc(x.id)}">Delete</button>`:""}</td></tr>`).join("")}
+    <tr><td colspan="4" class="name">Total</td><td class="right num name">${money(S.expenses.reduce((a,x)=>a+Number(x.amount||0),0))}</td><td></td></tr></tbody></table>`;
+}
+
+/* ---------- actions ---------- */
+function openStudent(id){
+  const s=id?S.students.find(x=>x.id===id):null;S.editing=s?s.id:null;
+  $("#fsTitle").textContent=s?"Edit student":"Add student";
+  $("#fsName").value=s?.name||"";$("#fsCls").value=s?.cls||"";$("#fsParent").value=s?.parent||"";$("#fsPhone").value=s?.phone||"";
+  $("#fsEmerg").value=s?.emergency||"";$("#fsFee").value=s?.fee??"";$("#fsMed").value=s?.medical||"";$("#fsConsent").checked=!!s?.consent;
+  $("#fsDelWrap").innerHTML=s&&S.canWrite?'<button class="btn danger" type="button" id="fsDel">Delete student</button>':"";
+  $("#fsHist").innerHTML=s&&(s.payments||[]).length?"<b>Payments</b>"+s.payments.map(p=>`<span class="num">${esc(p.date)} · ${money(p.amount)}</span>`).join(""):"";
+  document.querySelectorAll("#fStudent input,#fStudent textarea").forEach(e=>e.disabled=!S.canWrite);$("#fsSave").hidden=!S.canWrite;
+  $("#dlgStudent").showModal();
+}
+async function saveStudent(){
+  if(!S.db)return;const name=$("#fsName").value.trim();if(!name)return;
+  const feeRaw=$("#fsFee").value.trim();
+  const body={name,cls:$("#fsCls").value.trim(),parent:$("#fsParent").value.trim(),phone:$("#fsPhone").value.trim(),emergency:$("#fsEmerg").value.trim(),
+    fee:feeRaw===""?null:Number(feeRaw),medical:$("#fsMed").value.trim(),consent:$("#fsConsent").checked};
+  if(S.editing){await guard(S.db.doc("students/"+S.editing).update(body),"Saved "+name);}
+  else await guard(S.db.collection("students").add({...body,payments:[],seat:null,createdAt:Date.now()}),"Added "+name);
+}
+async function assignSeat(kidId,seat){
+  const holder=S.students.find(s=>s.seat===seat&&s.id!==kidId);
+  if(holder)await guard(S.db.doc("students/"+holder.id).update({seat:null}));
+  await guard(S.db.doc("students/"+kidId).update({seat}),"Seat "+seat.split("-")[1]+" given");
+  S.selSeat=null;S.selKid=null;
+}
+async function csv(){
+  if(S.view==="expenses"){const h=["Date","Item","Category","Paid by","Amount"],r=S.expenses.map(x=>[x.date,x.item,x.category,x.paidBy,x.amount]);
+    const tx=[h,...r].map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");
+    try{await S.dlFn.save({filename:"trip-expenses.csv",data:tx});}catch(e){if(e&&e.code!=="declined")toast("Export didn't work this time.");}return;}
+  const head=["Name","Class","Parent","Phone","Emergency","Medical","Seat","Fee due","Paid","Balance","Slip signed",...S.rolls.slice().reverse().map(r=>r.name)];
+  const rows=sorted().map(s=>[s.name,s.cls,s.parent,s.phone,s.emergency,s.medical,seatLabel(s.seat),feeDue(s),paid(s),Math.max(0,feeDue(s)-paid(s)),s.consent?"Yes":"No",...S.rolls.slice().reverse().map(r=>r.present&&r.present[s.id]?"Present":"Absent")]);
+  const text=[head,...rows].map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");
+  try{await S.dlFn.save({filename:(S.trip.name||"school-trip").replace(/[^\w-]+/g,"-")+".csv",data:text});}catch(e){if(e&&e.code!=="declined")toast("Export didn't work this time.");}
+}
+function inlineConfirm(wrap,label,fn){
+  const el=$(wrap),orig=el.innerHTML;
+  el.innerHTML=`<span class="confirm">${label}<button class="btn sm danger" type="button" data-yes>Yes, delete</button><button class="btn sm" type="button" data-no>Keep</button></span>`;
+  el.querySelector("[data-yes]").onclick=fn;el.querySelector("[data-no]").onclick=()=>el.innerHTML=orig;
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click",async e=>{
+  const t=e.target.closest("button,tr.click");if(!t)return;
+  if(t.matches(".tab")){location.hash=t.dataset.view;return;}
+  if(t.matches("tr.click")){openStudent(t.dataset.id);return;}
+  if(t.id==="addStudent")return openStudent();
+  if(t.id==="fsCancel")return $("#dlgStudent").close();
+  if(t.id==="fsDel")return inlineConfirm("#fsDelWrap","Delete this student?",async()=>{const id=S.editing;$("#dlgStudent").close();await guard(S.db.doc("students/"+id).delete(),"Student deleted");});
+  if(t.id==="editTrip"){const x=S.trip;$("#ftName").value=x.name||"";$("#ftSchool").value=x.school||"";$("#ftDest").value=x.destination||"";$("#ftDate").value=x.date||"";$("#ftFee").value=x.fee||"";$("#ftCur").value=x.currency||"";$("#ftBuses").value=x.buses;$("#ftSeats").value=x.seatsPerBus;$("#dlgTrip").showModal();return;}
+  if(t.id==="ftCancel")return $("#dlgTrip").close();
+  if(t.id==="exportCsv")return csv();
+  if(t.id==="clearEx")return inlineConfirm("#exClear","Remove all example students?",async()=>{for(const s of S.students.filter(x=>x.sample))await guard(S.db.doc("students/"+s.id).delete());toast("Examples removed");});
+  if(t.dataset.f){S.feeF=t.dataset.f;document.querySelectorAll("#feeFilter button").forEach(b=>b.setAttribute("aria-pressed",b===t));rFees();return;}
+  if(t.dataset.bus){S.bus=Number(t.dataset.bus);S.selSeat=null;rSeats();return;}
+  if(t.dataset.seat){const id=t.dataset.seat,taken=S.students.some(s=>s.seat===id);
+    if(S.selKid&&!taken&&S.canWrite){await assignSeat(S.selKid,id);return;}
+    S.selKid=null;S.selSeat=S.selSeat===id?null:id;rSeats();return;}
+  if(t.dataset.kid){S.selSeat=null;S.selKid=S.selKid===t.dataset.kid?null:t.dataset.kid;rSeats();return;}
+  if(t.id==="seatClear"){const s=S.students.find(x=>x.seat===S.selSeat);if(s)await guard(S.db.doc("students/"+s.id).update({seat:null}),"Seat freed");return;}
+  if(t.dataset.roll){S.roll=t.dataset.roll;rRoll();return;}
+  if(t.dataset.exdel){const id=t.dataset.exdel;return inlineConfirm("#exd-"+id,"Delete?",async()=>{await guard(S.db.doc("expenses/"+id).delete(),"Expense deleted");});}
+  if(t.dataset.pf){S.permF=t.dataset.pf;document.querySelectorAll("#permFilter button").forEach(b=>b.setAttribute("aria-pressed",b===t));rPerm();return;}
+  if(t.dataset.tok){const ta=$("#tplText");if(ta.disabled)return;const a=ta.selectionStart??ta.value.length,b=ta.selectionEnd??a,ins="{"+t.dataset.tok+"}";ta.value=ta.value.slice(0,a)+ins+ta.value.slice(b);ta.focus();ta.selectionStart=ta.selectionEnd=a+ins.length;S.tplDirty=true;return;}
+  if(t.id==="tplSave"){const msg=$("#tplText").value.trim()===DEFAULT_MSG.trim()?"":$("#tplText").value;S.tplDirty=false;
+    await guard(S.db.doc("trip/info").set({...S.trip,permMsg:msg,countryCode:$("#tplCc").value.replace(/\D/g,"")}),"Message saved");return;}
+  if(t.id==="tplReset"){$("#tplText").value=DEFAULT_MSG;S.tplDirty=true;toast("Default wording restored. Tap Save message to keep it.");return;}
+  if(t.dataset.copy){const s=S.students.find(x=>x.id===t.dataset.copy);if(!s)return;const txt=permText(s);
+    navigator.clipboard.writeText(txt).then(()=>toast("Message copied"),()=>{const p=t.closest(".perm").querySelector(".preview");p.style.maxHeight="none";const r=document.createRange();r.selectNodeContents(p);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);toast("Message selected. Copy it from here.");});return;}
+  if(t.dataset.consent){const s=S.students.find(x=>x.id===t.dataset.consent);if(s)await guard(S.db.doc("students/"+s.id).update({consent:!s.consent}),s.consent?"Marked missing":"Slip marked signed");return;}
+  if(t.dataset.tog){const r=S.rolls.find(x=>x.id===S.roll);if(!r)return;const now=!(r.present&&r.present[t.dataset.tog]);
+    t.classList.toggle("in",now);await guard(S.db.doc("rollcalls/"+r.id).update({present:{[t.dataset.tog]:now}}));return;}
+  if(t.id==="allIn"){const p={};S.students.forEach(s=>p[s.id]=true);await guard(S.db.doc("rollcalls/"+S.roll).update({present:p}),"Everyone marked present");return;}
+  if(t.id==="delRoll")return inlineConfirm("#delRollWrap","Delete this roll call?",async()=>{const id=S.roll;S.roll=null;await guard(S.db.doc("rollcalls/"+id).delete(),"Roll call deleted");});
+});
+document.addEventListener("keydown",e=>{const tr=e.target.closest&&e.target.closest("tr.click");if(tr&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openStudent(tr.dataset.id);}});
+document.addEventListener("change",async e=>{if(e.target.id==="seatAssign"&&e.target.value)await assignSeat(e.target.value,S.selSeat);});
+document.addEventListener("submit",async e=>{
+  const f=e.target;
+  if(f.id==="fStudent"){e.preventDefault();await saveStudent();$("#dlgStudent").close();return;}
+  if(f.id==="fTrip"){e.preventDefault();$("#dlgTrip").close();if(!S.db)return;
+    const body={school:$("#ftSchool").value.trim(),name:$("#ftName").value.trim(),destination:$("#ftDest").value.trim(),date:$("#ftDate").value,fee:Number($("#ftFee").value)||0,currency:$("#ftCur").value.trim(),
+      buses:Math.min(6,Math.max(1,parseInt($("#ftBuses").value)||1)),seatsPerBus:Math.min(80,Math.max(4,parseInt($("#ftSeats").value)||40))};
+    await guard(S.db.doc("trip/info").set({...S.trip,...body}),"Trip details saved");return;}
+  if(f.classList.contains("payrow")){e.preventDefault();const s=S.students.find(x=>x.id===f.dataset.id),inp=f.querySelector("input"),amt=Number(inp.value||inp.placeholder);
+    if(!s||!(amt>0))return;const pays=[...(s.payments||[]),{amount:amt,date:new Date().toISOString().slice(0,10)}];
+    await guard(S.db.doc("students/"+s.id).update({payments:pays}),money(amt)+" recorded for "+s.name);return;}
+  if(f.id==="exForm"){e.preventDefault();if(!S.db)return;const item=$("#exItem").value.trim(),amount=Number($("#exAmt").value);if(!item||!(amount>0))return;
+    const body={item,amount,category:$("#exCat").value,date:$("#exDate").value,paidBy:$("#exBy").value.trim(),createdAt:Date.now()};
+    $("#exItem").value="";$("#exAmt").value="";await guard(S.db.collection("expenses").add(body),money(amount)+" added");return;}
+  if(f.id==="newRoll"){e.preventDefault();const name=$("#rollName").value.trim();if(!name||!S.db)return;
+    const ref=S.db.collection("rollcalls").doc();S.roll=ref.id;$("#rollName").value="";await guard(ref.set({name,createdAt:Date.now(),present:{}}),"Roll call started");return;}
+});
+$("#q").addEventListener("input",e=>{S.q=e.target.value;rStudents();});
+$("#tplText").addEventListener("input",()=>{S.tplDirty=true;});
+document.addEventListener("click",e=>{const a=e.target.closest("a[data-sent]");if(!a||!S.canWrite||!S.db)return;
+  const id=a.dataset.sent;setTimeout(()=>guard(S.db.doc("students/"+id).update({permSent:new Date().toISOString().slice(0,10)})),0);});
+function route(){const h=location.hash.slice(1);S.view=["students","fees","seats","attendance","permission","expenses"].includes(h)?h:"students";render();}
+window.addEventListener("hashchange",route);
+
+/* ---------- data ---------- */
+async function start(){
+  route();
+  if(!window.claude||!window.claude.use){$("#statusNote").textContent="Open this page on claude.ai to load the shared register.";$("#statusNote").hidden=false;S.loaded=true;render();return;}
+  const [db,user,dl]=await Promise.all([claude.use("db"),claude.use("user"),claude.use("downloads")]);
+  S.dlFn=dl;
+  if(!db){S.canWrite=false;setWritable();S.loaded=true;$("#statusNote").textContent="Sign in to claude.ai to see the trip register.";$("#statusNote").hidden=false;render();return;}
+  S.db=db;
+  if(user){const c=await user.can("data.write");if(c===false){S.canWrite=false;}}
+  setWritable();
+  const timer=setTimeout(()=>{$("#statusNote").textContent="The register can't be reached yet. What you see may be out of date.";$("#statusNote").hidden=false;},10000);
+  const ok=snap=>{if(!snap.metadata.fromCache){clearTimeout(timer);$("#statusNote").hidden=true;}};
+  const fail=()=>{clearTimeout(timer);$("#statusNote").textContent="The register stopped updating. Reload the page to reconnect.";$("#statusNote").hidden=false;};
+  db.doc("trip/info").onSnapshot(s=>{S.trip={...DEFAULT_TRIP,...(s.exists?s.data():{})};render();},fail);
+  db.collection("students").onSnapshot(s=>{S.students=s.docs.map(d=>({id:d.id,...d.data()}));S.loaded=true;ok(s);render();},fail);
+  db.collection("expenses").onSnapshot(s=>{S.expenses=s.docs.map(d=>({id:d.id,...d.data()}));render();},fail);
+  db.collection("rollcalls").orderBy("createdAt","desc").onSnapshot(s=>{S.rolls=s.docs.map(d=>({id:d.id,...d.data()}));if(!S.roll&&S.rolls[0])S.roll=S.rolls[0].id;render();},fail);
+}
+start();
+</script>
+
+</body>
+</html>
